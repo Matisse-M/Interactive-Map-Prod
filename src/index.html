@@ -1,0 +1,468 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="styles.css">
+    <title>Guide des technologies informatiques</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+
+</head>
+<body>
+    <div id="toolbar-main">
+        <div id="map-selector-section">
+            <select id="map-selector">
+                <option value="entire-map.pdf">Carte complète</option>
+                <option value="cyber-map.pdf">Cybersécurité</option>
+                <option value="db-map.pdf">Base de données</option>
+                <option value="dev-ai-map.pdf">Développement IA</option>
+                <option value="dev-backend-map.pdf">Développement Backend</option>
+                <option value="dev-frontend-map.pdf">Développement Frontend</option>
+                <option value="dev-mobile-map.pdf">Développement Mobile</option>
+                <option value="devops-map.pdf">DevOps</option>
+                <option value="embarqué-map.pdf">Embarqué</option>
+                <option value="gestion-projet-map.pdf">Gestion de projet</option>
+                <option value="network-map.pdf">Réseau</option>
+                <option value="outils-dev-map.pdf">Outils de développement</option>
+            </select>
+        </div>
+        <div id="search-section">
+            <input type="text" id="search-input" placeholder="Rechercher un mot...">
+            <button id="search-btn">Rechercher</button>
+        </div>
+        <div id="zoom-controls-header">
+            <button id="zoom-out-btn" title="Dézoomer">-</button>
+            <button id="zoom-in-btn" title="Zoomer">+</button>
+        </div>
+    </div>
+    <div id="toolbar-search">
+        <div id="center-section">
+            <span id="match-count">Aucun élément trouvé</span>
+            <div id="nav-section">
+                <button id="prev-btn">←</button>
+                <button id="next-btn">→</button>
+            </div>
+        </div>
+    </div>
+    <div id="pdf-container"></div>
+
+    <script>
+        let url = '../assets/entire-map.pdf';
+
+        pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+
+        let pdfDoc = null;
+        let pageNum = 1;
+        let pageRendering = false;
+        let pageNumPending = null;
+        let scale = 1;
+        let minScale = 1;
+        let canvas = null;
+        let ctx = null;
+        let matches = [];
+        let currentMatchIndex = -1;
+
+        const pdfContainer = document.getElementById('pdf-container');
+
+        function highlightMatch(item, query) {
+           // console.log('Highlighting match:', item.str, 'transform:', item.transform[4], item.transform[5]);
+            const pageViewport = currentPage.getViewport({scale: 1.0});
+            const relativeX = item.transform[4] / pageViewport.width;
+            const relativeY = item.transform[5] / pageViewport.height;
+           // console.log('Relative position:', relativeX, relativeY);
+
+            const needsZoom = scale <= minScale;
+            if (needsZoom) {
+                scale = Math.min(minScale + 0.8, 3);
+                renderPage(pageNum).then(() => {
+                    setTimeout(() => {
+                        scrollToMatch(query, item);
+                    }, 300);
+                });
+            } else {
+                scrollToMatch(query, item);
+            }
+        }
+
+        function scrollToMatch(query, currentItem) {
+
+            const newTextLayer = document.querySelector('.textLayer');
+            if (newTextLayer) {
+                const spans = newTextLayer.querySelectorAll('span');
+
+                spans.forEach(s => {
+                    s.style.backgroundColor = '';
+                    s.style.color = 'transparent';
+                    s.style.opacity = '0';
+                });
+
+                const matchingSpans = [];
+                for (let span of spans) {
+                    if (span.textContent.toLowerCase().includes(query.toLowerCase())) {
+                        matchingSpans.push(span);
+                    }
+                }
+
+                const currentSpan = matchingSpans[currentMatchIndex];
+
+                if (currentSpan) {
+                    const rect = currentSpan.getBoundingClientRect();
+                    const containerRect = pdfContainer.getBoundingClientRect();
+                    const centerX = rect.left + rect.width / 2 - containerRect.left + pdfContainer.scrollLeft;
+                    const centerY = rect.top + rect.height / 2 - containerRect.top + pdfContainer.scrollTop;
+                    const targetScrollLeft = centerX - pdfContainer.clientWidth / 2;
+                    const targetScrollTop = centerY - pdfContainer.clientHeight / 2;
+                    pdfContainer.scrollTo({
+                        left: Math.max(0, targetScrollLeft),
+                        top: Math.max(0, targetScrollTop),
+                        behavior: 'smooth'
+                    });
+                }
+
+                for (let span of spans) {
+                    if (span.textContent.toLowerCase().includes(query.toLowerCase())) {
+                        span.style.backgroundColor = '#ffffcc';
+                        span.style.color = 'transparent';
+                        span.style.opacity = '0.8';
+                    }
+                }
+
+                if (currentSpan) {
+                currentSpan.style.backgroundColor = 'rgba(255, 0, 0, 0.5)';
+                }
+            }
+        }
+
+        function renderPage(num) {
+            pageRendering = true;
+            return pdfDoc.getPage(num).then(function(page) {
+                currentPage = page;
+
+                const pageViewport = page.getViewport({scale: 1.0});
+
+                const containerWidth = pdfContainer.clientWidth;
+                const containerHeight = pdfContainer.clientHeight;
+
+                if (scale === 1) {
+                    scale = containerWidth / pageViewport.width;
+                    minScale = scale;
+                }
+
+                const viewport = page.getViewport({scale: scale});
+                currentViewport = viewport;
+
+                const pixelRatio = window.devicePixelRatio || 1;
+                canvas = document.createElement('canvas');
+                ctx = canvas.getContext('2d');
+
+                canvas.height = viewport.height * pixelRatio;
+                canvas.width = viewport.width * pixelRatio;
+
+                canvas.style.width = viewport.width + 'px';
+                canvas.style.height = viewport.height + 'px';
+                canvas.style.left = '0px';
+                ctx.scale(pixelRatio, pixelRatio);
+
+                pdfContainer.innerHTML = '';
+                pdfContainer.appendChild(canvas);
+
+                const renderContext = {
+                    canvasContext: ctx,
+                    viewport: viewport
+                };
+                const renderTask = page.render(renderContext);
+
+                return renderTask.promise.then(function() {
+                    pageRendering = false;
+                    if (pageNumPending !== null) {
+                        const pendingNum = pageNumPending;
+                        pageNumPending = null;
+                        return renderPage(pendingNum);
+                    }
+                    return page.getTextContent();
+                }).then(function(text) {
+                    if (text) {
+                        textContent = text;
+                        return renderTextLayer(page, viewport);
+                    }
+                });
+            });
+        }
+
+        function renderTextLayer(page, viewport) {
+            const existingTextLayer = pdfContainer.querySelector('.textLayer');
+            if (existingTextLayer) {
+                existingTextLayer.remove();
+            }
+
+            const textLayerDiv = document.createElement('div');
+            textLayerDiv.className = 'textLayer';
+            textLayerDiv.style.width = viewport.width + 'px';
+            textLayerDiv.style.height = viewport.height + 'px';
+            textLayerDiv.style.setProperty('--scale-factor', viewport.scale);
+
+            textLayerDiv.style.left = '0px';
+
+            pdfContainer.appendChild(textLayerDiv);
+
+            if (textContent && textContent.items) {
+                return pdfjsLib.renderTextLayer({
+                    textContentSource: textContent,
+                    container: textLayerDiv,
+                    viewport: viewport
+                }).promise.then(() => {
+                    const spans = textLayerDiv.querySelectorAll('span');
+                    addClickableLinks(spans);
+                    return Promise.resolve();
+                });
+            } else {
+                return Promise.resolve();
+            }
+        }
+
+        function addClickableLinks(spans) {
+            const mapKeywords = {
+                'guide des technologies': 'entire-map.pdf',
+                'devops': 'devops-map.pdf',
+                'cyber': 'cyber-map.pdf',
+                'de données': 'db-map.pdf',
+                'data / ia': 'dev-ai-map.pdf',
+                'back end': 'dev-backend-map.pdf',
+                'frond end': 'dev-frontend-map.pdf',
+                'dev mobile': 'dev-mobile-map.pdf',
+                'temps réel': 'embarqué-map.pdf',
+                'de projets': 'gestion-projet-map.pdf',
+                'systèmes et réseaux': 'network-map.pdf',
+                'de dev': 'outils-dev-map.pdf'
+            };
+
+            const mapNames = {
+                'entire-map.pdf': 'Guide des technologies',
+                'devops-map.pdf': 'DevOps',
+                'cyber-map.pdf': 'Cybersécurité',
+                'db-map.pdf': 'Base de données',
+                'dev-ai-map.pdf': 'Développement IA',
+                'dev-backend-map.pdf': 'Développement Backend',
+                'dev-frontend-map.pdf': 'Développement Frontend',
+                'dev-mobile-map.pdf': 'Développement Mobile',
+                'embarqué-map.pdf': 'Embarqué',
+                'gestion-projet-map.pdf': 'Gestion de projet',
+                'network-map.pdf': 'Réseau',
+                'outils-dev-map.pdf': 'Outils de développement'
+            };
+
+            let tooltip = null;
+            let preview = null;
+
+            spans.forEach(span => {
+                const text = span.textContent.toLowerCase().trim();
+                for (const [keyword, pdfFile] of Object.entries(mapKeywords)) {
+                    if (text === keyword) {
+                        span.style.cursor = 'pointer';
+                        span.style.pointerEvents = 'auto';
+                        span.addEventListener('mouseenter', function(e) {
+                            tooltip = document.createElement('div');
+                            tooltip.className = 'keyword-tooltip';
+                            tooltip.innerHTML = '<img src="../assets/icone.png" style="width: 16px; height: 16px; vertical-align: middle; margin-right: 5px; filter: brightness(0) invert(1);" /> ' + mapNames[pdfFile];
+                            document.body.appendChild(tooltip);
+
+                            const rect = span.getBoundingClientRect();
+                            tooltip.style.left = (rect.left + rect.width / 2 - tooltip.offsetWidth / 2) + 'px';
+                            tooltip.style.top = (rect.top - tooltip.offsetHeight - 8) + 'px';
+                            preview = document.createElement('div');
+                            preview.className = 'map-preview';
+                            document.body.appendChild(preview);
+
+                            pdfjsLib.getDocument('../assets/' + pdfFile).promise.then(function(pdf) {
+                                return pdf.getPage(1);
+                            }).then(function(page) {
+                                const previewCanvas = document.createElement('canvas');
+                                const previewCtx = previewCanvas.getContext('2d');
+                                const viewport = page.getViewport({scale: 0.3});
+
+                                previewCanvas.height = viewport.height;
+                                previewCanvas.width = viewport.width;
+                                preview.appendChild(previewCanvas);
+                                page.render({
+                                    canvasContext: previewCtx,
+                                    viewport: viewport
+                                });
+                            });
+                        });
+
+                        span.addEventListener('mouseleave', function() {
+                            if (tooltip) {
+                                tooltip.remove();
+                                tooltip = null;
+                            }
+                            if (preview) {
+                                preview.remove();
+                                preview = null;
+                            }
+                        });
+
+                        span.addEventListener('click', function(e) {
+                            e.preventDefault();
+                            if (tooltip) {
+                                tooltip.remove();
+                                tooltip = null;
+                            }
+                            if (preview) {
+                                preview.remove();
+                                preview = null;
+                            }
+                            loadPDF('../assets/' + pdfFile);
+                            document.getElementById('map-selector').value = pdfFile;
+                        });
+                        break;
+                    }
+                }
+            });
+        }
+        function loadPDF(pdfUrl) {
+            url = pdfUrl;
+            matches = [];
+            currentMatchIndex = -1;
+            document.getElementById('match-count').textContent = 'Aucun élément trouvé';
+            document.getElementById('search-input').value = '';
+            scale = 1;
+            pageNum = 1;
+            pdfjsLib.getDocument(url).promise.then(function(pdf) {
+                pdfDoc = pdf;
+                renderPage(pageNum).then(() => {
+                    pdfContainer.scrollLeft = 0;
+                    pdfContainer.scrollTop = 0;
+                });
+            });
+        }
+
+        loadPDF(url);
+        document.getElementById('map-selector').addEventListener('change', function(e) {
+            const selectedMap = e.target.value;
+            loadPDF('../assets/' + selectedMap);
+        });
+
+        function performSearch() {
+            const query = document.getElementById('search-input').value.toLowerCase().trim();
+            if (!textContent || !query) return;
+
+            const textItems = textContent.items;
+            matches = [];
+
+            for (let i = 0; i < textItems.length; i++) {
+                if (textItems[i].str.toLowerCase().includes(query)) {
+                    matches.push(textItems[i]);
+                }
+            }
+
+            const elementText = matches.length > 1 ? 'éléments trouvés' : 'élément trouvé';
+            document.getElementById('match-count').textContent = matches.length > 0
+                ? matches.length + ' ' + elementText
+                : 'Aucun élément trouvé';
+
+            if (matches.length > 0) {
+                currentMatchIndex = 0;
+                highlightMatch(matches[0], query);
+            } else {
+                console.log('Text not found:', query);
+                const textLayer = document.querySelector('.textLayer');
+                if (textLayer) {
+                    const spans = textLayer.querySelectorAll('span');
+                    spans.forEach(s => {
+                        s.style.backgroundColor = '';
+                        s.style.color = 'transparent';
+                        s.style.opacity = '0';
+                    });
+                }
+            }
+        }
+
+        document.getElementById('search-btn').addEventListener('click', performSearch);
+        document.getElementById('search-input').addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                performSearch();
+            }
+        });
+
+        document.getElementById('prev-btn').addEventListener('click', function() {
+            if (matches.length > 1) {
+                currentMatchIndex = (currentMatchIndex - 1 + matches.length) % matches.length;
+                highlightMatch(matches[currentMatchIndex], document.getElementById('search-input').value.toLowerCase().trim());
+            }
+        });
+
+        document.getElementById('next-btn').addEventListener('click', function() {
+            if (matches.length > 1) {
+                currentMatchIndex = (currentMatchIndex + 1) % matches.length;
+                highlightMatch(matches[currentMatchIndex], document.getElementById('search-input').value.toLowerCase().trim());
+            }
+        });
+
+        let zoomTimeout = null;
+        pdfContainer.addEventListener('wheel', function(e) {
+            if (e.ctrlKey || e.metaKey) {
+                e.preventDefault();
+            }
+        });
+
+        function performZoom(zoomIn) {
+            const zoomFactor = 0.2;
+            const scrollXRatio = (pdfContainer.scrollLeft + pdfContainer.clientWidth / 2) / pdfContainer.scrollWidth;
+            const scrollYRatio = (pdfContainer.scrollTop + pdfContainer.clientHeight / 2) / pdfContainer.scrollHeight;
+            if (zoomIn) {
+                scale = Math.min(scale + zoomFactor, 3);
+            } else {
+                scale = Math.max(scale - zoomFactor, minScale);
+            }
+
+            renderPage(pageNum).then(() => {
+                pdfContainer.scrollLeft = scrollXRatio * pdfContainer.scrollWidth - pdfContainer.clientWidth / 2;
+                pdfContainer.scrollTop = scrollYRatio * pdfContainer.scrollHeight - pdfContainer.clientHeight / 2;
+            });
+        }
+
+        document.getElementById('zoom-in-btn').addEventListener('click', function() {
+            performZoom(true);
+        });
+
+        document.getElementById('zoom-out-btn').addEventListener('click', function() {
+            performZoom(false);
+        });
+
+        let isDragging = false;
+        let startX, startY;
+        pdfContainer.addEventListener('mousedown', function(e) {
+            if (!e.target.closest('#search-container')) {
+                isDragging = true;
+                startX = e.clientX;
+                startY = e.clientY;
+                e.preventDefault();
+            }
+        });
+        document.addEventListener('mousemove', function(e) {
+            if (isDragging) {
+                const dx = e.clientX - startX;
+                const dy = e.clientY - startY;
+                pdfContainer.scrollLeft -= dx;
+                pdfContainer.scrollTop -= dy;
+                startX = e.clientX;
+                startY = e.clientY;
+            }
+        });
+        document.addEventListener('mouseup', function() {
+            isDragging = false;
+        });
+        document.addEventListener('keydown', function(e) {
+            if (matches.length > 1) {
+                if (e.key === 'ArrowRight') {
+                    currentMatchIndex = (currentMatchIndex + 1) % matches.length;
+                    highlightMatch(matches[currentMatchIndex], document.getElementById('search-input').value.toLowerCase().trim());
+                } else if (e.key === 'ArrowLeft') {
+                    currentMatchIndex = (currentMatchIndex - 1 + matches.length) % matches.length;
+                    highlightMatch(matches[currentMatchIndex], document.getElementById('search-input').value.toLowerCase().trim());
+                }
+            }
+        });
+    </script>
+</body>
+</html>

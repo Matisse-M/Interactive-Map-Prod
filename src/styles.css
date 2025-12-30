@@ -1,0 +1,425 @@
+@font-face {
+    font-family: 'Externatic';
+    src: url('../assets/externatic-font.ttf') format('truetype');
+    font-display: swap;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Externatic', sans-serif;
+    overflow: hidden;
+    background: #1E1E1E;
+}
+
+input, select, button {
+    font-family: 'Externatic', sans-serif;
+}
+
+#toolbar-main {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 70px;
+    background: #FFFFFF;
+    color: black;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 0 30px;
+    box-sizing: border-box;
+    z-index: 11;
+    gap: 30px;
+    backdrop-filter: blur(10px);
+}
+
+#toolbar-search {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 70px;
+    background: transparent;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 30px 15px 30px;
+    box-sizing: border-box;
+    z-index: 10;
+}
+
+#zoom-controls-header {
+    display: flex;
+    gap: 10px;
+}
+
+#search-section {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+#center-section {
+    position: fixed;
+    bottom: 15px;
+    right: 30px;
+    font-weight: normal;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    z-index: 10;
+}
+
+#match-count {
+    background: rgba(30, 30, 30, 0.9);
+    padding: 10px 25px;
+    border-radius: 25px;
+    font-size: 14px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    display: inline-block;
+    min-width: 60px;
+    pointer-events: auto;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+#nav-section {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    pointer-events: auto;
+}
+
+#map-selector-section {
+    flex: 0 0 auto;
+}
+
+#search-input {
+    padding: 12px 20px;
+    border-radius: 25px;
+    border: 2px solid rgba(133, 19, 66, 0.8);
+    background: rgba(255, 255, 255, 0.95);
+    color: black;
+    min-width: 300px;
+    font-size: 15px;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3);
+}
+
+#search-input:focus {
+    outline: none;
+    border-color: #1e1e1e;
+    background: rgba(255, 255, 255, 0.15);
+    box-shadow: 0 0 15px rgba(136, 136, 136, 0.3);
+}
+
+#search-input::placeholder {
+    color: rgba(0, 0, 0, 0.6);
+}
+
+#search-btn {
+    padding: 12px 25px;
+    border-radius: 25px;
+    border: none;
+    background: rgba(133, 19, 66, 0.9);
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 300;
+    font-size: 14px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
+    backdrop-filter: blur(10px);
+}
+
+#prev-btn, #next-btn {
+    padding: 6px 15px;
+    border-radius: 20px;
+    border: none;
+    background: rgba(133, 19, 66, 0.9);
+    color: white;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-weight: 300;
+    font-size: 14px;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+}
+
+#search-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 12px rgba(0, 0, 0, 0.4);
+    background: #1e1e1e;
+}
+
+#prev-btn:hover, #next-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.4);
+    background: #1e1e1e;
+}
+
+#search-btn:active, #prev-btn:active, #next-btn:active {
+    transform: translateY(0);
+}
+
+#map-selector {
+    padding: 8px 15px;
+    border-radius: 8px;
+    background: #851342;
+    color: #FFFFFF;
+    cursor: pointer;
+    min-width: 220px;
+    font-size: 14px;
+    font-weight: 300;
+    transition: all 0.3s ease;
+    backdrop-filter: blur(10px);
+}
+
+#map-selector:hover {
+    background: #1e1e1e;
+}
+
+#map-selector:focus {
+    outline: none;
+    box-shadow: 0 0 15px rgba(136, 136, 136, 0.3);
+}
+
+#map-selector option {
+    background: #1e1e1e;
+    color: white;
+    padding: 10px;
+}
+
+#pdf-container {
+    position: absolute;
+    top: 70px;
+    left: 0;
+    width: 100%;
+    height: calc(100% - 70px);
+    overflow: auto;
+    -webkit-overflow-scrolling: touch;
+    background: linear-gradient(to bottom, #1a1a1a, #2a2a2a, #333);
+    scroll-behavior: smooth;
+    padding-bottom: 80px;
+}
+
+#pdf-container::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+#pdf-container::-webkit-scrollbar-track {
+    background: rgba(0, 0, 0, 0.3);
+}
+
+#pdf-container::-webkit-scrollbar-thumb {
+    background: #FFFFFF;
+    border-radius: 6px;
+}
+
+#pdf-container::-webkit-scrollbar-thumb:hover {
+    background: #e1e0dd;
+}
+
+#zoom-in-btn, #zoom-out-btn {
+    width: 40px;
+    height: 40px;
+    border-radius: 8px;
+    border: none;
+    background: #851342;
+    color: white;
+    font-size: 20px;
+    font-weight: normal;
+    cursor: pointer;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+#zoom-in-btn:hover, #zoom-out-btn:hover {
+    transform: translateY(-2px);
+    background: #1e1e1e;
+    box-shadow: 0 4px 10px rgba(0, 0, 0, 0.5);
+}
+
+#zoom-in-btn:active, #zoom-out-btn:active {
+    transform: translateY(0);
+}
+
+@media (max-width: 768px) {
+    #toolbar-main {
+        height: auto;
+        min-height: 50px;
+        flex-wrap: wrap;
+        padding: 10px 15px;
+        gap: 10px;
+    }
+
+    #toolbar-search {
+        height: auto;
+        min-height: 50px;
+        flex-wrap: wrap;
+        padding: 10px 15px;
+        gap: 10px;
+    }
+
+    #map-selector-section {
+        flex: 1 1 100%;
+    }
+
+    #zoom-controls-header {
+        flex: 1 1 100%;
+        justify-content: center;
+    }
+
+    #search-section {
+        flex: 1 1 100%;
+        order: 1;
+        display: flex;
+        gap: 10px;
+    }
+
+    #search-input {
+        min-width: 0;
+        flex: 1;
+        width: 100%;
+    }
+
+    #center-section {
+        order: 2;
+        flex: 1 1 auto;
+        text-align: center;
+    }
+
+    #nav-section {
+        order: 3;
+        flex: 0 0 auto;
+    }
+
+    #map-selector {
+        width: 100%;
+        min-width: 0;
+    }
+
+    #pdf-container {
+        position: fixed;
+        width: 100%;
+    }
+
+    #zoom-in-btn, #zoom-out-btn {
+        width: 40px;
+        height: 40px;
+        font-size: 18px;
+    }
+
+    #match-count {
+        font-size: 12px;
+        padding: 6px 15px;
+    }
+}
+
+@media (max-width: 480px) {
+    #toolbar-main, #toolbar-search {
+        padding: 8px 10px;
+    }
+
+    #search-input {
+        font-size: 14px;
+        padding: 6px 10px;
+    }
+
+    #search-btn, #prev-btn, #next-btn {
+        padding: 6px 12px;
+        font-size: 12px;
+    }
+
+    #map-selector {
+        font-size: 13px;
+        padding: 6px 10px;
+    }
+
+    #zoom-in-btn, #zoom-out-btn {
+        width: 35px;
+        height: 35px;
+        font-size: 16px;
+    }
+}
+
+canvas {
+    position: absolute;
+    top: 0;
+}
+
+.textLayer {
+    position: absolute;
+    top: 0;
+    overflow: hidden;
+    opacity: 0.8;
+    line-height: 1.0;
+    pointer-events: none;
+    background-color: rgba(255, 0, 0, 0);
+}
+
+.textLayer > span {
+    color: transparent;
+    position: absolute;
+    white-space: pre;
+    cursor: text;
+    transform-origin: 0% 0%;
+    font-size: 12px;
+}
+
+.highlight {
+    background-color: #1e1e1e;
+}
+
+.keyword-tooltip {
+    position: fixed;
+    background: rgba(30, 30, 30, 0.95);
+    color: white;
+    padding: 10px 15px;
+    border-radius: 8px;
+    font-size: 13px;
+    pointer-events: none;
+    z-index: 1000;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.5);
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(133, 19, 66, 0.5);
+    font-family: 'Externatic', sans-serif;
+    white-space: nowrap;
+}
+
+.map-preview {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    width: 300px;
+    height: 200px;
+    background: #1E1E1E;
+    border-radius: 12px;
+    border: 2px solid #e1e0dd;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.6);
+    z-index: 999;
+    pointer-events: none;
+    overflow: hidden;
+    backdrop-filter: blur(10px);
+}
+
+.map-preview canvas {
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    opacity: 0.85;
+}
