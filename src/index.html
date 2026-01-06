@@ -65,11 +65,9 @@
         const pdfContainer = document.getElementById('pdf-container');
 
         function highlightMatch(item, query) {
-           // console.log('Highlighting match:', item.str, 'transform:', item.transform[4], item.transform[5]);
             const pageViewport = currentPage.getViewport({scale: 1.0});
             const relativeX = item.transform[4] / pageViewport.width;
-            const relativeY = item.transform[5] / pageViewport.height;
-           // console.log('Relative position:', relativeX, relativeY);
+            const relativeY = item.transform[5] / pageViewport.height;g
 
             const needsZoom = scale <= minScale;
             if (needsZoom) {
@@ -163,7 +161,12 @@
                 canvas.style.left = '0px';
                 ctx.scale(pixelRatio, pixelRatio);
 
-                pdfContainer.innerHTML = '';
+                const existingCanvas = pdfContainer.querySelector('canvas');
+                const existingTextLayer = pdfContainer.querySelector('.textLayer');
+                const existingFooter = pdfContainer.querySelector('#footer');
+                if (existingCanvas) existingCanvas.remove();
+                if (existingTextLayer) existingTextLayer.remove();
+                if (existingFooter) existingFooter.remove();
                 pdfContainer.appendChild(canvas);
 
                 const renderContext = {
@@ -213,9 +216,29 @@
                 }).promise.then(() => {
                     const spans = textLayerDiv.querySelectorAll('span');
                     addClickableLinks(spans);
+
+                    let footer = pdfContainer.querySelector('#footer');
+                    if (!footer) {
+                        footer = document.createElement('div');
+                        footer.id = 'footer';
+                        footer.innerHTML = '<p>© 2025 Externatic. Matisse Marsac & Albane Merian.</p>';
+                        pdfContainer.appendChild(footer);
+                    }
+
+                    footer.style.top = viewport.height + 'px';
+                    footer.style.width = viewport.width + 'px';
                     return Promise.resolve();
                 });
             } else {
+                let footer = pdfContainer.querySelector('#footer');
+                if (!footer) {
+                    footer = document.createElement('div');
+                    footer.id = 'footer';
+                    footer.innerHTML = '<p>© 2025 Externatic. Matisse Marsac & Albane Merian.</p>';
+                    pdfContainer.appendChild(footer);
+                }
+                footer.style.top = viewport.height + 'px';
+                footer.style.width = viewport.width + 'px';
                 return Promise.resolve();
             }
         }
