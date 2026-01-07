@@ -67,7 +67,7 @@
         function highlightMatch(item, query) {
             const pageViewport = currentPage.getViewport({scale: 1.0});
             const relativeX = item.transform[4] / pageViewport.width;
-            const relativeY = item.transform[5] / pageViewport.height;g
+            const relativeY = item.transform[5] / pageViewport.height;
 
             const needsZoom = scale <= minScale;
             if (needsZoom) {
@@ -221,7 +221,7 @@
                     if (!footer) {
                         footer = document.createElement('div');
                         footer.id = 'footer';
-                        footer.innerHTML = '<p>© 2025 Externatic. Matisse Marsac & Albane Merian.</p>';
+                        footer.innerHTML = '<p>© 2026 Externatic. Développé par Matisse Marsac & Albane Merian.</p>';
                         pdfContainer.appendChild(footer);
                     }
 
@@ -234,7 +234,7 @@
                 if (!footer) {
                     footer = document.createElement('div');
                     footer.id = 'footer';
-                    footer.innerHTML = '<p>© 2025 Externatic. Matisse Marsac & Albane Merian.</p>';
+                    footer.innerHTML = '<p>© 2026 Externatic. Développé par Matisse Marsac & Albane Merian.</p>';
                     pdfContainer.appendChild(footer);
                 }
                 footer.style.top = viewport.height + 'px';
