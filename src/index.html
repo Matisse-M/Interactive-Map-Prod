@@ -29,19 +29,16 @@
         <div id="search-section">
             <input type="text" id="search-input" placeholder="Rechercher un mot...">
             <button id="search-btn">Rechercher</button>
-        </div>
-        <div id="zoom-controls-header">
-            <button id="zoom-out-btn" title="Dézoomer">-</button>
-            <button id="zoom-in-btn" title="Zoomer">+</button>
-        </div>
-    </div>
-    <div id="toolbar-search">
-        <div id="center-section">
             <span id="match-count">Aucun élément trouvé</span>
             <div id="nav-section">
                 <button id="prev-btn">←</button>
                 <button id="next-btn">→</button>
             </div>
+        </div>
+        <div id="zoom-controls-header">
+            <button id="zoom-reset-btn" title="Réinitialiser le zoom">⟲</button>
+            <button id="zoom-out-btn" title="Dézoomer">-</button>
+            <button id="zoom-in-btn" title="Zoomer">+</button>
         </div>
     </div>
     <div id="pdf-container"></div>
@@ -56,7 +53,8 @@
         let pageRendering = false;
         let pageNumPending = null;
         let scale = 1;
-        let minScale = 1;
+        let minScale = 0.3;
+        let initialScale = 1;
         let canvas = null;
         let ctx = null;
         let matches = [];
@@ -69,9 +67,9 @@
             const relativeX = item.transform[4] / pageViewport.width;
             const relativeY = item.transform[5] / pageViewport.height;
 
-            const needsZoom = scale <= minScale;
+            const needsZoom = scale <= initialScale;
             if (needsZoom) {
-                scale = Math.min(minScale + 0.8, 3);
+                scale = Math.min(initialScale + 0.8, 3);
                 renderPage(pageNum).then(() => {
                     setTimeout(() => {
                         scrollToMatch(query, item);
@@ -143,7 +141,7 @@
 
                 if (scale === 1) {
                     scale = containerWidth / pageViewport.width;
-                    minScale = scale;
+                    initialScale = scale;
                 }
 
                 const viewport = page.getViewport({scale: scale});
@@ -161,13 +159,16 @@
                 canvas.style.left = '0px';
                 ctx.scale(pixelRatio, pixelRatio);
 
-                const existingCanvas = pdfContainer.querySelector('canvas');
-                const existingTextLayer = pdfContainer.querySelector('.textLayer');
-                const existingFooter = pdfContainer.querySelector('#footer');
-                if (existingCanvas) existingCanvas.remove();
-                if (existingTextLayer) existingTextLayer.remove();
-                if (existingFooter) existingFooter.remove();
-                pdfContainer.appendChild(canvas);
+                pdfContainer.innerHTML = '';
+
+                const wrapper = document.createElement('div');
+                wrapper.id = 'pdf-wrapper';
+                wrapper.style.position = 'relative';
+                wrapper.style.width = viewport.width + 'px';
+                wrapper.style.height = viewport.height + 'px';
+                wrapper.style.flexShrink = '0';
+                wrapper.appendChild(canvas);
+                pdfContainer.appendChild(wrapper);
 
                 const renderContext = {
                     canvasContext: ctx,
@@ -193,7 +194,8 @@
         }
 
         function renderTextLayer(page, viewport) {
-            const existingTextLayer = pdfContainer.querySelector('.textLayer');
+            const wrapper = document.getElementById('pdf-wrapper');
+            const existingTextLayer = wrapper ? wrapper.querySelector('.textLayer') : null;
             if (existingTextLayer) {
                 existingTextLayer.remove();
             }
@@ -206,7 +208,9 @@
 
             textLayerDiv.style.left = '0px';
 
-            pdfContainer.appendChild(textLayerDiv);
+            if (wrapper) {
+                wrapper.appendChild(textLayerDiv);
+            }
 
             if (textContent && textContent.items) {
                 return pdfjsLib.renderTextLayer({
@@ -216,29 +220,9 @@
                 }).promise.then(() => {
                     const spans = textLayerDiv.querySelectorAll('span');
                     addClickableLinks(spans);
-
-                    let footer = pdfContainer.querySelector('#footer');
-                    if (!footer) {
-                        footer = document.createElement('div');
-                        footer.id = 'footer';
-                        footer.innerHTML = '<p>© 2026 Externatic. Développé par Matisse Marsac & Albane Merian.</p>';
-                        pdfContainer.appendChild(footer);
-                    }
-
-                    footer.style.top = viewport.height + 'px';
-                    footer.style.width = viewport.width + 'px';
                     return Promise.resolve();
                 });
             } else {
-                let footer = pdfContainer.querySelector('#footer');
-                if (!footer) {
-                    footer = document.createElement('div');
-                    footer.id = 'footer';
-                    footer.innerHTML = '<p>© 2026 Externatic. Développé par Matisse Marsac & Albane Merian.</p>';
-                    pdfContainer.appendChild(footer);
-                }
-                footer.style.top = viewport.height + 'px';
-                footer.style.width = viewport.width + 'px';
                 return Promise.resolve();
             }
         }
@@ -439,8 +423,15 @@
             }
 
             renderPage(pageNum).then(() => {
-                pdfContainer.scrollLeft = scrollXRatio * pdfContainer.scrollWidth - pdfContainer.clientWidth / 2;
-                pdfContainer.scrollTop = scrollYRatio * pdfContainer.scrollHeight - pdfContainer.clientHeight / 2;
+                if (canvas.offsetWidth <= pdfContainer.clientWidth && canvas.offsetHeight <= pdfContainer.clientHeight) {
+                    pdfContainer.classList.add('centered');
+                    pdfContainer.scrollLeft = 0;
+                    pdfContainer.scrollTop = 0;
+                } else {
+                    pdfContainer.classList.remove('centered');
+                    pdfContainer.scrollLeft = scrollXRatio * pdfContainer.scrollWidth - pdfContainer.clientWidth / 2;
+                    pdfContainer.scrollTop = scrollYRatio * pdfContainer.scrollHeight - pdfContainer.clientHeight / 2;
+                }
             });
         }
 
@@ -450,6 +441,15 @@
 
         document.getElementById('zoom-out-btn').addEventListener('click', function() {
             performZoom(false);
+        });
+
+        document.getElementById('zoom-reset-btn').addEventListener('click', function() {
+            scale = initialScale;
+            renderPage(pageNum).then(() => {
+                pdfContainer.classList.remove('centered');
+                pdfContainer.scrollLeft = 0;
+                pdfContainer.scrollTop = 0;
+            });
         });
 
         let isDragging = false;
