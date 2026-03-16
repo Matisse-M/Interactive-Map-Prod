@@ -12,8 +12,9 @@
 
 body {
     font-family: 'Externatic', sans-serif;
-    overflow: hidden;
     background: #1E1E1E;
+    margin: 0;
+    padding: 0;
 }
 
 input, select, button {
@@ -38,6 +39,22 @@ input, select, button {
     backdrop-filter: blur(10px);
 }
 
+#toolbar-search {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 70px;
+    background: transparent;
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 30px 15px 30px;
+    box-sizing: border-box;
+    z-index: 10;
+}
+
 #zoom-controls-header {
     display: flex;
     gap: 10px;
@@ -52,22 +69,37 @@ input, select, button {
     gap: 10px;
 }
 
+#center-section {
+    position: fixed;
+    bottom: 15px;
+    right: 30px;
+    font-weight: normal;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 8px;
+    z-index: 10;
+}
+
 #match-count {
     background: rgba(30, 30, 30, 0.9);
-    padding: 8px 15px;
-    border-radius: 20px;
-    font-size: 13px;
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+    padding: 10px 25px;
+    border-radius: 25px;
+    font-size: 14px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.4);
     display: inline-block;
     min-width: 60px;
-    color: white;
-    white-space: nowrap;
+    pointer-events: auto;
+    backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 #nav-section {
     display: flex;
     align-items: center;
-    gap: 5px;
+    gap: 8px;
+    pointer-events: auto;
 }
 
 #map-selector-section {
@@ -170,23 +202,15 @@ input, select, button {
 }
 
 #pdf-container {
-    position: absolute;
+    position: fixed;
     top: 70px;
     left: 0;
     width: 100%;
-    height: calc(100% - 70px);
+    height: calc(100vh - 70px);
     overflow: auto;
     -webkit-overflow-scrolling: touch;
     background: linear-gradient(to bottom, #1a1a1a, #2a2a2a, #333);
     scroll-behavior: smooth;
-    padding-bottom: 80px;
-    display: flex;
-    justify-content: center;
-    align-items: flex-start;
-}
-
-#pdf-container.centered {
-    align-items: center;
 }
 
 #pdf-container::-webkit-scrollbar {
@@ -261,6 +285,8 @@ input, select, button {
     }
 
     #search-section {
+        position: static;
+        transform: none;
         flex: 1 1 100%;
         order: 1;
         display: flex;
@@ -292,6 +318,8 @@ input, select, button {
     #pdf-container {
         position: fixed;
         width: 100%;
+        top: 150px;
+        height: calc(100vh - 150px);
     }
 
     #zoom-in-btn, #zoom-out-btn, #zoom-reset-btn {
@@ -309,6 +337,11 @@ input, select, button {
 @media (max-width: 480px) {
     #toolbar-main, #toolbar-search {
         padding: 8px 10px;
+    }
+
+    #pdf-container {
+        top: 135px;
+        height: calc(100vh - 135px);
     }
 
     #search-input {
@@ -398,4 +431,25 @@ canvas {
     height: 100%;
     object-fit: contain;
     opacity: 0.85;
+}
+
+#footer {
+    position: absolute;
+    left: 0;
+    width: 100%;
+    height: 40px;
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    backdrop-filter: blur(10px);
+    border-top: 1px solid rgba(31, 29, 29, 0.1);
+    flex-shrink: 0;
+}
+
+#footer p {
+    margin: 0;
+    font-size: 12px;
+    font-family: 'Externatic', sans-serif;
 }

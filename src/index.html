@@ -29,16 +29,20 @@
         <div id="search-section">
             <input type="text" id="search-input" placeholder="Rechercher un mot...">
             <button id="search-btn">Rechercher</button>
+        </div>
+        <div id="zoom-controls-header">
+            <button id="zoom-out-btn" title="Dézoomer">-</button>
+            <button id="zoom-reset-btn" title="Réinitialiser le zoom">↺</button>
+            <button id="zoom-in-btn" title="Zoomer">+</button>
+        </div>
+    </div>
+    <div id="toolbar-search">
+        <div id="center-section">
             <span id="match-count">Aucun élément trouvé</span>
             <div id="nav-section">
                 <button id="prev-btn">←</button>
                 <button id="next-btn">→</button>
             </div>
-        </div>
-        <div id="zoom-controls-header">
-            <button id="zoom-reset-btn" title="Réinitialiser le zoom">⟲</button>
-            <button id="zoom-out-btn" title="Dézoomer">-</button>
-            <button id="zoom-in-btn" title="Zoomer">+</button>
         </div>
     </div>
     <div id="pdf-container"></div>
@@ -53,8 +57,7 @@
         let pageRendering = false;
         let pageNumPending = null;
         let scale = 1;
-        let minScale = 0.3;
-        let initialScale = 1;
+        let minScale = 1;
         let canvas = null;
         let ctx = null;
         let matches = [];
@@ -67,9 +70,9 @@
             const relativeX = item.transform[4] / pageViewport.width;
             const relativeY = item.transform[5] / pageViewport.height;
 
-            const needsZoom = scale <= initialScale;
+            const needsZoom = scale <= minScale;
             if (needsZoom) {
-                scale = Math.min(initialScale + 0.8, 3);
+                scale = Math.min(minScale + 0.8, 3);
                 renderPage(pageNum).then(() => {
                     setTimeout(() => {
                         scrollToMatch(query, item);
@@ -141,7 +144,7 @@
 
                 if (scale === 1) {
                     scale = containerWidth / pageViewport.width;
-                    initialScale = scale;
+                    minScale = scale;
                 }
 
                 const viewport = page.getViewport({scale: scale});
@@ -159,16 +162,13 @@
                 canvas.style.left = '0px';
                 ctx.scale(pixelRatio, pixelRatio);
 
-                pdfContainer.innerHTML = '';
-
-                const wrapper = document.createElement('div');
-                wrapper.id = 'pdf-wrapper';
-                wrapper.style.position = 'relative';
-                wrapper.style.width = viewport.width + 'px';
-                wrapper.style.height = viewport.height + 'px';
-                wrapper.style.flexShrink = '0';
-                wrapper.appendChild(canvas);
-                pdfContainer.appendChild(wrapper);
+                const existingCanvas = pdfContainer.querySelector('canvas');
+                const existingTextLayer = pdfContainer.querySelector('.textLayer');
+                const existingFooter = pdfContainer.querySelector('#footer');
+                if (existingCanvas) existingCanvas.remove();
+                if (existingTextLayer) existingTextLayer.remove();
+                if (existingFooter) existingFooter.remove();
+                pdfContainer.appendChild(canvas);
 
                 const renderContext = {
                     canvasContext: ctx,
@@ -194,8 +194,7 @@
         }
 
         function renderTextLayer(page, viewport) {
-            const wrapper = document.getElementById('pdf-wrapper');
-            const existingTextLayer = wrapper ? wrapper.querySelector('.textLayer') : null;
+            const existingTextLayer = pdfContainer.querySelector('.textLayer');
             if (existingTextLayer) {
                 existingTextLayer.remove();
             }
@@ -208,9 +207,7 @@
 
             textLayerDiv.style.left = '0px';
 
-            if (wrapper) {
-                wrapper.appendChild(textLayerDiv);
-            }
+            pdfContainer.appendChild(textLayerDiv);
 
             if (textContent && textContent.items) {
                 return pdfjsLib.renderTextLayer({
@@ -220,9 +217,29 @@
                 }).promise.then(() => {
                     const spans = textLayerDiv.querySelectorAll('span');
                     addClickableLinks(spans);
+
+                    let footer = pdfContainer.querySelector('#footer');
+                    if (!footer) {
+                        footer = document.createElement('div');
+                        footer.id = 'footer';
+                        footer.innerHTML = '<p>© 2026 Externatic. Développé par Matisse Marsac & Albane Merian.</p>';
+                        pdfContainer.appendChild(footer);
+                    }
+
+                    footer.style.top = viewport.height + 'px';
+                    footer.style.width = viewport.width + 'px';
                     return Promise.resolve();
                 });
             } else {
+                let footer = pdfContainer.querySelector('#footer');
+                if (!footer) {
+                    footer = document.createElement('div');
+                    footer.id = 'footer';
+                    footer.innerHTML = '<p>© 2026 Externatic. Développé par Matisse Marsac & Albane Merian.</p>';
+                    pdfContainer.appendChild(footer);
+                }
+                footer.style.top = viewport.height + 'px';
+                footer.style.width = viewport.width + 'px';
                 return Promise.resolve();
             }
         }
@@ -412,26 +429,37 @@
             }
         });
 
+        window.addEventListener('resize', function() {
+            if (pdfDoc) {
+                clearTimeout(zoomTimeout);
+                zoomTimeout = setTimeout(() => {
+                    pdfDoc.getPage(pageNum).then(function(page) {
+                        const pageViewport = page.getViewport({scale: 1.0});
+                        minScale = pdfContainer.clientWidth / pageViewport.width;
+                        if (scale < minScale) {
+                            scale = minScale;
+                        }
+                        renderPage(pageNum);
+                    });
+                }, 250);
+            }
+        });
+
         function performZoom(zoomIn) {
-            const zoomFactor = 0.2;
+            const zoomFactor = 0.5;
             const scrollXRatio = (pdfContainer.scrollLeft + pdfContainer.clientWidth / 2) / pdfContainer.scrollWidth;
             const scrollYRatio = (pdfContainer.scrollTop + pdfContainer.clientHeight / 2) / pdfContainer.scrollHeight;
             if (zoomIn) {
-                scale = Math.min(scale + zoomFactor, 3);
+                scale = Math.min(scale + zoomFactor, 8);
             } else {
-                scale = Math.max(scale - zoomFactor, minScale);
+                scale = Math.max(scale - zoomFactor, minScale * 0.5);
             }
 
             renderPage(pageNum).then(() => {
-                if (canvas.offsetWidth <= pdfContainer.clientWidth && canvas.offsetHeight <= pdfContainer.clientHeight) {
-                    pdfContainer.classList.add('centered');
-                    pdfContainer.scrollLeft = 0;
-                    pdfContainer.scrollTop = 0;
-                } else {
-                    pdfContainer.classList.remove('centered');
-                    pdfContainer.scrollLeft = scrollXRatio * pdfContainer.scrollWidth - pdfContainer.clientWidth / 2;
-                    pdfContainer.scrollTop = scrollYRatio * pdfContainer.scrollHeight - pdfContainer.clientHeight / 2;
-                }
+                const newCenterX = scrollXRatio * pdfContainer.scrollWidth;
+                const newCenterY = scrollYRatio * pdfContainer.scrollHeight;
+                pdfContainer.scrollLeft = newCenterX - pdfContainer.clientWidth / 2;
+                pdfContainer.scrollTop = newCenterY - pdfContainer.clientHeight / 2;
             });
         }
 
@@ -444,9 +472,8 @@
         });
 
         document.getElementById('zoom-reset-btn').addEventListener('click', function() {
-            scale = initialScale;
+            scale = minScale;
             renderPage(pageNum).then(() => {
-                pdfContainer.classList.remove('centered');
                 pdfContainer.scrollLeft = 0;
                 pdfContainer.scrollTop = 0;
             });
