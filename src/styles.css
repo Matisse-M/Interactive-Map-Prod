@@ -273,6 +273,12 @@ input, select, button {
         flex-wrap: wrap;
         padding: 10px 15px;
         gap: 10px;
+        bottom: 20px;
+        z-index: 100;
+    }
+
+    #toolbar-search.has-matches {
+        bottom: 100px;
     }
 
     #map-selector-section {
@@ -303,6 +309,7 @@ input, select, button {
         order: 2;
         flex: 1 1 auto;
         text-align: center;
+        position: static;
     }
 
     #nav-section {
@@ -319,7 +326,11 @@ input, select, button {
         position: fixed;
         width: 100%;
         top: 150px;
-        height: calc(100vh - 150px);
+        height: calc(100vh - 170px);
+    }
+
+    #pdf-container.has-matches {
+        height: calc(100vh - 250px);
     }
 
     #zoom-in-btn, #zoom-out-btn, #zoom-reset-btn {
@@ -339,9 +350,22 @@ input, select, button {
         padding: 8px 10px;
     }
 
+    #toolbar-search {
+        padding-bottom: 20px;
+        bottom: 20px;
+    }
+
+    #toolbar-search.has-matches {
+        bottom: 100px;
+    }
+
     #pdf-container {
         top: 135px;
-        height: calc(100vh - 135px);
+        height: calc(100vh - 155px);
+    }
+
+    #pdf-container.has-matches {
+        height: calc(100vh - 235px);
     }
 
     #search-input {
@@ -350,7 +374,7 @@ input, select, button {
     }
 
     #search-btn, #prev-btn, #next-btn {
-        padding: 6px 12px;
+        padding: 8px 16px;
         font-size: 12px;
     }
 

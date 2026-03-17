@@ -133,6 +133,10 @@
         }
 
         function renderPage(num) {
+            if (pageRendering) {
+                pageNumPending = num;
+                return Promise.resolve();
+            }
             pageRendering = true;
             return pdfDoc.getPage(num).then(function(page) {
                 currentPage = page;
@@ -150,7 +154,13 @@
                 const viewport = page.getViewport({scale: scale});
                 currentViewport = viewport;
 
-                const pixelRatio = window.devicePixelRatio || 1;
+                let pixelRatio = window.devicePixelRatio || 1;
+
+                const maxCanvasDimension = 4000;
+                if (viewport.width * pixelRatio > maxCanvasDimension || viewport.height * pixelRatio > maxCanvasDimension) {
+                    pixelRatio = Math.min(pixelRatio, maxCanvasDimension / Math.max(viewport.width, viewport.height));
+                }
+
                 canvas = document.createElement('canvas');
                 ctx = canvas.getContext('2d');
 
@@ -349,6 +359,8 @@
             currentMatchIndex = -1;
             document.getElementById('match-count').textContent = 'Aucun élément trouvé';
             document.getElementById('search-input').value = '';
+            document.getElementById('toolbar-search').classList.remove('has-matches');
+            document.getElementById('pdf-container').classList.remove('has-matches');
             scale = 1;
             pageNum = 1;
             pdfjsLib.getDocument(url).promise.then(function(pdf) {
@@ -383,6 +395,16 @@
             document.getElementById('match-count').textContent = matches.length > 0
                 ? matches.length + ' ' + elementText
                 : 'Aucun élément trouvé';
+
+            const toolbar = document.getElementById('toolbar-search');
+            const pdfCont = document.getElementById('pdf-container');
+            if (matches.length > 0) {
+                toolbar.classList.add('has-matches');
+                pdfCont.classList.add('has-matches');
+            } else {
+                toolbar.classList.remove('has-matches');
+                pdfCont.classList.remove('has-matches');
+            }
 
             if (matches.length > 0) {
                 currentMatchIndex = 0;
